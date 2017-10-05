@@ -106,3 +106,13 @@ extension URLSession {
     }
 }
 
+extension Future {
+    public func delay(on queue: DispatchQueue, to deadline: DispatchTime) -> Future {
+        return Future { complete in
+            queue.asyncAfter(deadline: deadline) {
+                self.onComplete(callback: complete)
+            }
+        }
+    }
+}
+

@@ -22,7 +22,7 @@ public class GwentAPI {
             .map(Parse.object)
     }
     
-    public func getCards(url: URL?) -> Future<Result<Response.Cards>> {
+    public func getCards(url: URL? = nil) -> Future<Result<Response.Cards>> {
         return  schema.map { url ?? $0.cards }
             .then(getJSON)
             .map(Parse.cards)
