@@ -12,32 +12,45 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         let navigationController = storyboard.instantiateInitialViewController() as! UINavigationController
         let allCards = navigationController.viewControllers.first as! AllCardsViewController
         
+        var loadededCards: [GwentAPI.Response.CardLink] = []
+        var nextURL: URL?
+        var loadMoreCards: Command? = nil
+        
+        let api = GwentAPI()
+        loadMoreCards = Command {
+            func handle(cards: GwentAPI.Response.Cards) -> AllCardsViewController.Props {
+                loadededCards.append(contentsOf: cards.results)
+                nextURL = cards.next
+                if nextURL == nil { loadMoreCards = nil }
+                
+                let names = loadededCards.map { $0.name }
+            
+                return AllCardsViewController.Props(
+                    cards: names,
+                    lastCardDisplayed: loadMoreCards)
+            }
+            
+            api.getCards(url: nextURL)
+                .dispatch(on: .main)
+                .map(handle(cards:))
+                .onSuccess { allCards.props = $0 }
+                .onError { error in
+                    let alert = UIAlertController(
+                        title: "Cannot receive cards",
+                        message: error.localizedDescription,
+                        preferredStyle: .alert)
+                    
+                    alert.addAction(UIAlertAction(title: "ok :(", style: .cancel))
+                    allCards.present(alert, animated: true)
+            }
+        }
+        
         allCards.props = .init(
-            cards: ["Loading...."]
+            cards: ["Loading..."],
+            lastCardDisplayed: nil
         )
         
-//        let api = GwentAPI()
-//        let cardsFuture = api.getCards()
-//            .map { response in response.results.map { $0.name } }
-//            .dispatch(on: .main)
-        
-        let cardsFuture = Future(value: Result.value(["Test 1", "Test 2", "Test 3"]))
-            .delay(on: .main, to: .now() + .seconds(2))
-        
-        cardsFuture
-            .map { cardNames in AllCardsViewController.Props(cards: cardNames) }
-            
-            .onSuccess { allCards.props = $0 }
-            .onError { error in
-                let alert = UIAlertController(
-                    title: "Cannot receive cards",
-                    message: error.localizedDescription,
-                    preferredStyle: .alert)
-                
-                alert.addAction(UIAlertAction(title: "ok :(", style: .cancel))
-                allCards.present(alert, animated: true)
-                
-        }
+        loadMoreCards?.perform()
         
         window = UIWindow(frame: UIScreen.main.bounds)
         window?.rootViewController = navigationController

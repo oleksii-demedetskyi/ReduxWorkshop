@@ -3,9 +3,10 @@ import UIKit
 class AllCardsViewController: UITableViewController {
     struct Props {
         let cards: [String]
+        let lastCardDisplayed: Command?
     }
     
-    var props: Props = Props(cards: []){
+    var props: Props = Props(cards: [], lastCardDisplayed: nil){
         didSet { tableView.reloadData() }
     }
     
@@ -25,5 +26,13 @@ class AllCardsViewController: UITableViewController {
         cell.textLabel?.text = props.cards[indexPath.row]
         
         return cell
+    }
+    
+    override func tableView(_ tableView: UITableView,
+                            willDisplay cell: UITableViewCell,
+                            forRowAt indexPath: IndexPath) {
+        guard props.cards.indices.last == indexPath.row else { return }
+        
+        props.lastCardDisplayed?.perform()
     }
 }
